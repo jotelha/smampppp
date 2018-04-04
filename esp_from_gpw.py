@@ -14,13 +14,25 @@ import numpy as np
 
 import argparse
 
-parser = argparse.ArgumentParser(description='Extracts the electrostatic potential (ESP) from a GPAW .gpw restart file given as command line argument.')
+parser = argparse.ArgumentParser(description='Extracts the electrostatic'
+        ' potential (ESP) from a GPAW .gpw restart file given as command line'
+        ' argument.')
 parser.add_argument('infile')
-parser.add_argument('outfile_cube', nargs='?', metavar='outfile.cube', default='phi_grid.cube', \
-        help="Electrostatic potential in GAUSSIAN-native .cube format, default 'phi_grid.cube'")
-parser.add_argument('outfile_csv', nargs='?', metavar='outfile.csv', default='phi_grid.csv', \
-        help="Electrostatic potential and x,y,z coordinates as four-valued lines of .8 digits precision " \
-                + " mantissa notation, default 'phi_grid.csv'")
+parser.add_argument('outfile_cube', nargs='?', metavar='outfile.cube', 
+        default='esp.cube', help="Electrostatic potential in GAUSSIAN-native"
+        " .cube format, default 'esp.cube'")
+parser.add_argument('outfile_csv', nargs='?', metavar='outfile.csv', 
+        default='esp.csv', help="Electrostatic potential and x,y,z coordinates"
+                " as four-valued lines of .8 digits precision mantissa"
+                " notation, default 'esp.csv'")
+parser.add_argument('outfile_rho_cube', nargs='?', metavar='outfile_rho.cube',
+        default='rho.cube', help="All-electron density in GAUSSIAN-native .cube"
+        " format, default 'rho.cube'")
+parser.add_argument('outfile_rho_pseudo_cube', nargs='?', 
+        metavar='outfile_rho_pseudo.cube', default='rho_pseudo.cube',
+        help="All-electron density in GAUSSIAN-native .cube format, default"
+        "'rho_pseudo.cube'")
+
 args = parser.parse_args()
 
 gpw_file = args.infile
@@ -109,3 +121,25 @@ np.savetxt(args.outfile_csv,dat,fmt='%.8e',delimiter=' ')
 
 # dat_ps = np.array( [ phi_grid_ps.flatten(), x_grid3.flatten(), y_grid3.flatten(), z_grid3.flatten() ] )
 # np.savetxt('phi_grid_ps.csv',dat_ps.T,fmt='%.8e',delimiter=' ')
+
+
+
+# https://wiki.fysik.dtu.dk/gpaw/tutorials/bader/bader.html#bader-analysis
+
+
+rho_pseudo      = calc.get_pseudo_density()
+rho             = calc.get_all_electron_density()
+# https://wiki.fysik.dtu.dk/gpaw/tutorials/all-electron/all_electron_density.html:
+# As the all-electron density has more structure than the pseudo-density, it is
+# necessary to refine the density grid used to represent the pseudo-density.
+# This can be done using the gridrefinement keyword of the
+# get_all_electron_density method:
+#
+# >>> n = calc.get_all_electron_density(gridrefinement=2)
+#
+# Current only the values 1, 2, and 4 are supported (2 is default).
+rho_pseudo_per_bohr_cube = rho_pseudo * Bohr**3
+rho_per_bohr_cube = rho * Bohr**3
+write(args.outfile_rho_cube, struc, data=rho_per_bohr_cube) 
+write(args.outfile_rho_pseudo_cube, struc, data=rho_pseudo_per_bohr_cube) 
+

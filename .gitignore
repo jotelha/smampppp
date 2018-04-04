@@ -1,3 +1,12 @@
+# custom .gitignore entries:
+
+# ignore all files in root
+*
+# except .py files
+!*.py
+
+# standard github .gitignore template for Python:
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
