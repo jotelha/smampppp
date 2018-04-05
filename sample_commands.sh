@@ -13,7 +13,7 @@ module load gpaw/1.3.0
 mpirun -n 20 gpaw-python gpw_from_traj.py -c 6 molecule.traj smamp.gpw
 
 # write ESP and electron densities to standard files
-mpirun -n 20 gpaw-python esp_from_gpw.py smamp_test.gpw
+mpirun -n 20 gpaw-python esp_from_gpw.py smamp.gpw
 # usage: esp_from_gpw.py [-h]
 #                        infile [outfile.cube] [outfile.csv] [outfile_rho.cube]
 #                        [outfile_rho_pseudo.cube]
