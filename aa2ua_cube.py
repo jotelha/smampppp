@@ -69,6 +69,6 @@ surplus_atoms = len(new_ase_struct) - len(ase_struct)
 print("{} atoms are going to be truncated from file {}...".format(surplus_atoms,infile_cube))
 # hdf5 = h5py.File(infile_h5,'r')
 cube_data, cube_atoms = read_cube_data(infile_cube)
-ase.io.write(outfile_cube, cube_atoms[1:len(ase_struct)], data=cube_data)
+ase.io.write(outfile_cube, cube_atoms[0:len(ase_struct)], data=cube_data)
 # ATTENTION: this script just truncates atoms based on total count difference
 # in UA and AA representations

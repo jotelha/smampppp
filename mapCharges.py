@@ -77,15 +77,19 @@ charge_key = list(hdf5.keys())[0]
 
 charges = list(hdf5[charge_key])
 
-atom_charge_dict = dict(zip(names,charges))
+# atom_charge_dict = dict(zip(names,charges))
 
-if args.aa: # all atoms
+if args.all_atoms: # all atoms
+    print("Treating system and charges as all-atom...")
+    atom_charge_dict = dict(zip(names[0:aa_count],charges))
     for a in new_pmd_struct.atoms:
         a.charge = atom_charge_dict[a.name]
+    new_pmd_struct.save(outfile_top)
 else: # united atoms:
-    for a in pmd_top.atoms:
+    print("Treating system and charges as united-atom...")
+    atom_charge_dict = dict(zip(names[0:ua_count],charges))
+    #for a in pmd_top.atoms:
+    for a in pmd_struct.atoms:
         a.charge = atom_charge_dict[a.name]
-
-# always 
-pmd_top.write(outfile_top)
-
+    #pmd_top.write(outfile_top)
+    pmd_struct.save(outfile_top)

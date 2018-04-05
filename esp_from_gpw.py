@@ -104,6 +104,17 @@ dat = np.vstack( ( phi_hartree.flatten(), x_grid3.flatten()/Bohr, y_grid3.flatte
 
 write(args.outfile_cube, struc, data=phi_hartree) # apparently the native GAUSSIAN format for ESP, readible by Horton
 np.savetxt(args.outfile_csv,dat,fmt='%.8e',delimiter=' ')
+# horton/io/cube.py, line 65:
+#     all coordinates in a cube file are in atomic units
+# in line with
+# http://theochem.github.io/horton/2.1.0/lib/mod_horton_units.html?highlight=units#module-horton.units
+# referencing
+#    B. J. Mohr and B. N. Taylor, CODATA recommended values of the fundamental 
+#    physical constants: 1998, Rev. Mod. Phys. 72(2), 351 (2000)
+# which recommends 0.529e-10 m as the length measure in a.u. (atomic units)
+# thus the only conclusion can be that Horton expects Bohr as length unit
+# and Hartree as energy unit. Conversions for outputing in this file are correct.
+
 
 # the code below could be used to interpolate the potential onto a coarser or finer grid
 # however, I got errors (most of the time)
@@ -138,8 +149,90 @@ rho             = calc.get_all_electron_density()
 # >>> n = calc.get_all_electron_density(gridrefinement=2)
 #
 # Current only the values 1, 2, and 4 are supported (2 is default).
+
+# https://wiki.fysik.dtu.dk/gpaw/tutorials/bader/bader.html
+# gives an example on how to convert and extract the electron densities:
 rho_pseudo_per_bohr_cube = rho_pseudo * Bohr**3
 rho_per_bohr_cube = rho * Bohr**3
 write(args.outfile_rho_cube, struc, data=rho_per_bohr_cube) 
 write(args.outfile_rho_pseudo_cube, struc, data=rho_pseudo_per_bohr_cube) 
 
+# looking at the horton parsing script 
+#    horton/scripts/espfit.py
+# one finds...
+
+# def parse_wdens(arg):
+#     '''Parse the argument to the --wdens option of horton-espfit.py'''
+#     if arg is None:
+#         return
+#     words = arg.split(':')
+#     lnrho0 = -9
+#     sigma = 0.8
+#     if len(words) == 0:
+#         fn_cube = None
+#     elif len(words) == 1:
+#         fn_cube = words[0]
+#     elif len(words) == 2:
+#         fn_cube = words[0]
+#         lnrho0 = float(words[1])
+#     elif len(words) == 3:
+#         fn_cube = words[0]
+#         lnrho0 = float(words[1])
+#         sigma = float(words[2])
+#     else:
+#         raise ValueError('The argument to --wdens may at most contain three fields separated by a colon.')
+#     if len(fn_cube) == 0:
+#         fn_cube = None
+#     return fn_cube, lnrho0, sigma
+
+# ...
+
+# def load_rho(coordinates, numbers, fn_cube, ref_ugrid, stride, chop):
+#     '''Load densities from a file, reduce by stride, chop and check ugrid
+# 
+#        **Arguments:**
+# 
+#        coordinates
+#             An array with shape (N, 3) containing atomic coordinates.
+# 
+#        numbers
+#             A vector with shape (N,) containing atomic numbers.
+# 
+#        fn_cube
+#             The cube file with the electron density.
+# 
+#        ref_ugrid
+#             A reference ugrid that must match the one from the density cube
+#             file (after reduction).
+# 
+#        stride
+#             The reduction factor.
+# 
+#        chop
+#             The number of slices to chop of the grid in each direction.
+#     '''
+#     if fn_cube is None:
+#         # Load the built-in database of proatoms
+#         natom = len(numbers)
+#         numbers = np.unique(numbers)
+#         proatomdb = ProAtomDB.from_refatoms(numbers, max_cation=0, max_anion=0, agspec='fine')
+#         # Construct the pro-density
+#         rho = np.zeros(ref_ugrid.shape)
+#         for i in xrange(natom):
+#             spline = proatomdb.get_spline(numbers[i])
+#             ref_ugrid.eval_spline(spline, coordinates[i], rho)
+#     else:
+#         # Load cube
+#         mol_rho = IOData.from_file(fn_cube)
+#         rho = mol_rho.cube_data
+#         ugrid = mol_rho.grid
+#         # Reduce grid size
+#         if stride > 1:
+#             rho, ugrid = reduce_data(rho, ugrid, stride, chop)
+#         # Compare with ref_ugrid (only shape)
+#         if (ugrid.shape != ref_ugrid.shape).any():
+#             raise ValueError('The densities file does not contain the same amount if information as the potential file$
+#     return rho
+
+# ... not performing any conversions on the electron density read from a .cube file,
+# thus the density unit should be expected as Bohr^-3
