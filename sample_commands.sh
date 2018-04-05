@@ -8,7 +8,7 @@
 msub -I -l walltime=2:00:00 -l nodes=1:ppn=20 # start interactive 2h session
 
 module purge
-modulle load gpaw/1.3.0
+module load gpaw/1.3.0
 # extract .gpw file from SMAMP molecule of charge +6
 mpirun -n 20 gpaw-python gpw_from_traj.py -c 6 molecule.traj smamp.gpw
 
