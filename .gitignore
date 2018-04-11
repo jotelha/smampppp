@@ -5,6 +5,7 @@
 # except .py files
 !*.py
 !sample_commands.sh
+!README.md
 
 # standard github .gitignore template for Python:
 

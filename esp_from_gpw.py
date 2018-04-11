@@ -13,24 +13,55 @@ from ase.units import Hartree
 import numpy as np
 
 import argparse
+import io
+
+# from mailing list
+# https://listserv.fysik.dtu.dk/pipermail/gpaw-users/2012-February/001277.html
+# In PAW, the effective potential is vHartree + vxc + vbar, where vbar are 
+# fixed contributions from the atomic setups.
+
+# https://listserv.fysik.dtu.dk/pipermail/gpaw-users/2012-February/001283.html
+# For that case [periodic], the average of the Coulomb potential is zero, where the 
+ # Coulomb potential is the potential we get from solving the Poisson 
+# equation "nabla v_coulomb=4 pi rho", where rho is the pseudo charge 
+# density.  The total effective potential is the v_coulomb+v_XC.
+
+# vt_sg is KS potential on fine grid (?), sG on coarse grid
+def get_vtsg_potential(calc): # no conversion!
+        dens = calc.density
+        
+        # the following lines have been adapted from GPAW
+        # code without fully understanding their role
+        calc.initialize_positions()
+        dens.interpolate_pseudo_density()
+        dens.calculate_pseudo_charge()
+        calc.hamiltonian.update(dens)
+
+        v_g = calc.hamiltonian.finegd.collect(calc.hamiltonian.vt_sg, broadcast=True)
+        v_g = calc.hamiltonian.finegd.zero_pad(v_g)
+        v_g = v_g[0] + v_g[1] # sum for spin up & down
+        return v_g
 
 parser = argparse.ArgumentParser(description='Extracts the electrostatic'
         ' potential (ESP) from a GPAW .gpw restart file given as command line'
         ' argument.')
 parser.add_argument('infile')
-parser.add_argument('outfile_cube', nargs='?', metavar='outfile.cube', 
-        default='esp.cube', help="Electrostatic potential in GAUSSIAN-native"
-        " .cube format, default 'esp.cube'")
-parser.add_argument('outfile_csv', nargs='?', metavar='outfile.csv', 
-        default='esp.csv', help="Electrostatic potential and x,y,z coordinates"
-                " as four-valued lines of .8 digits precision mantissa"
-                " notation, default 'esp.csv'")
-parser.add_argument('outfile_rho_cube', nargs='?', metavar='outfile_rho.cube',
+parser.add_argument('outfile_vHtg_cube', nargs='?', metavar='vHtg.cube', 
+       default='vHtg.cube', help="Electrostatic potential (vHt_g) in GAUSSIAN-native"
+       " .cube format, default 'vHtg.cube'")
+parser.add_argument('outfile_vtsg_cube', nargs='?', metavar='vtsg.cube',
+        default='vtsg.cube', help="Electrostatic potential (vt_sg) in GAUSSIAN-native"
+        " .cube format, default 'vtsg.cube'")
+parser.add_argument('outfile_vHtg_gesp', nargs='?', metavar='vHtg.gesp', 
+       default='vHtg.gesp', help="Electrostatic potential and x,y,z coordinates"
+               " as four-valued lines of 16.7E formatted numbers"
+               " default 'vHtg.gesp'")
+parser.add_argument('outfile_rho_cube', nargs='?', metavar='rho.cube',
         default='rho.cube', help="All-electron density in GAUSSIAN-native .cube"
         " format, default 'rho.cube'")
 parser.add_argument('outfile_rho_pseudo_cube', nargs='?', 
-        metavar='outfile_rho_pseudo.cube', default='rho_pseudo.cube',
-        help="All-electron density in GAUSSIAN-native .cube format, default"
+        metavar='rho_pseudo.cube', default='rho_pseudo.cube',
+        help="Pseudo electron density in GAUSSIAN-native .cube format, default"
         "'rho_pseudo.cube'")
 
 args = parser.parse_args()
@@ -38,13 +69,29 @@ args = parser.parse_args()
 gpw_file = args.infile
 print("Reading input file '{}'".format(gpw_file))
 
-# The file .gpw is a binary file containing wave functions, densities, positions and everything else (also the 
-# parameters characterizing the PAW calculator used for the calculation).
+# The file .gpw is a binary file containing wave functions, densities, 
+# positions and everything else (also the parameters characterizing 
+# the PAW calculator used for the calculation).
 # source: https://wiki.fysik.dtu.dk/gpaw/documentation/manual.html#restarting-a-calculation
 struc, calc = restart(gpw_file)
 
-phi = calc.get_electrostatic_potential()
-# potential query comes from gpaw/hamiltonian.py
+vHtg = calc.get_electrostatic_potential()
+# potential query comes from gpaw/paw.py
+##       def get_electrostatic_potential(self):
+#        """Return the electrostatic potential.
+#
+#        This is the potential from the pseudo electron density and the
+#        PAW-compensation charges.  So, the electrostatic potential will
+#        only be correct outside the PAW augmentation spheres.
+#        """
+#
+#        ham = self.hamiltonian
+#        dens = self.density
+#        self.initialize_positions()
+#        dens.interpolate_pseudo_density()
+#        dens.calculate_pseudo_charge()
+#        return ham.get_electrostatic_potential(dens) * Ha
+# ...which in turn calls get_electrostatic_potential(dens) from hamiltonian.py...
 #     def get_electrostatic_potential(self, dens):
 #        self.update(dens)
 #
@@ -69,7 +116,7 @@ phi = calc.get_electrostatic_potential()
 #    functions (also on the coarse grid).
 # ... tell us: potential has twice as many grid points in each spatial dimension as the actual number of coarse grid
 # points queried by "calc.get_number_of_grid_points()"
-nX = phi.shape # = 2 * calc.get_number_of_grid_points()
+nX = vHtg.shape # = 2 * calc.get_number_of_grid_points()
 X = struc.cell.diagonal()
 x_grid = np.linspace(0,X[0],nX[0])
 y_grid = np.linspace(0,X[1],nX[1])
@@ -91,19 +138,41 @@ x_grid3,y_grid3,z_grid3=np.meshgrid(x_grid,y_grid,z_grid)
 #     U_hor = U_gpw * E_h / (e*eV)
 # we use
 #    ase.units.Hartree = 27.211386024367243 (eV)
-phi_hartree = phi / Hartree
+vHtg_hartree = vHtg / Hartree                   # some (what?) potential in Hartree
+vtsg_hartree = get_vtsg_potential(calc)   # Hartree potential in Hartree
+# 20180410, by Richard Leute:
+#   Richard:
+#      Zu meiner Frage, das Elektrostatische Feld (E) hätte ich aus dem Hartree
+#      Potential (H) abgeleitet (E = -grad(H)). Jetzt sollte ich mir nur sicher
+#      sein was das Hartree Potential in GPAW ist. Bekomme ich das mit, 
+#      'calc.hamiltonian.vt_sG'? Das habe ich so aus der mailing list genommen 
+#      https://listserv.fysik.dtu.dk/pipermail/gpaw-users/2012-February/001275.html
+#      Die Einheiten sind dann Hartree und Bohr?
+#   Michael:
+#      ja, sollte genauso sein.
+
 
 # put potential in grid points and xyz-coordinates in csv-file format (four %.8e values, seperated by whitespace)
 #as expected by resp FORTRAN code 2.1 (October 1994 Jim Caldwell)
-dat = np.vstack( ( phi_hartree.flatten(), x_grid3.flatten()/Bohr, y_grid3.flatten()/Bohr, z_grid3.flatten()/Bohr ) ).T
+pos = struc.get_positions()
+dat = np.vstack( ( vHtg_hartree.flatten(), x_grid3.flatten()/Bohr, y_grid3.flatten()/Bohr, z_grid3.flatten()/Bohr ) ).T
 # spatial units are converted to Bohr. What unit is the potential?
 # Division (not multiplication)  is necessary here, as ase.units.Bohr is defined as
 #     u['Bohr'] = (4e10 * pi * u['_eps0'] * u['_hbar']**2 / u['_me'] / u['_e']**2)  # Bohr radius
 # with unit [ Bohr ] = Angstrom / Bohr
 #     ase.units.Bohr = 0.5291772105638411 (Ang)
 
-write(args.outfile_cube, struc, data=phi_hartree) # apparently the native GAUSSIAN format for ESP, readible by Horton
-np.savetxt(args.outfile_csv,dat,fmt='%.8e',delimiter=' ')
+write(args.outfile_vHtg_cube, struc, data=vHtg_hartree) # apparently the native GAUSSIAN format for ESP, readible by Horton
+write(args.outfile_vtsg_cube, struc, data=vtsg_hartree)
+
+
+n_atoms = len(struc)
+n_dat = dat.shape[0]
+l1 = "{:5d}{:5d}{:5d}".format(n_atoms,n_dat,0)
+ghd = io.BytesIO()
+np.savetxt(ghd, pos, fmt='%16.7E', delimiter='', header=l1, comments='')
+ghd = ('\n' + ' '*16).join(ghd.getvalue().decode().splitlines())
+np.savetxt(args.outfile_vHtg_gesp, dat, fmt='%16.7E', delimiter='' ,header=ghd, comments='')
 # horton/io/cube.py, line 65:
 #     all coordinates in a cube file are in atomic units
 # in line with
@@ -136,8 +205,6 @@ np.savetxt(args.outfile_csv,dat,fmt='%.8e',delimiter=' ')
 
 
 # https://wiki.fysik.dtu.dk/gpaw/tutorials/bader/bader.html#bader-analysis
-
-
 rho_pseudo      = calc.get_pseudo_density()
 rho             = calc.get_all_electron_density()
 # https://wiki.fysik.dtu.dk/gpaw/tutorials/all-electron/all_electron_density.html:
