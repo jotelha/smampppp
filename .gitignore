@@ -6,7 +6,8 @@
 !*.py
 !sample_commands.sh
 !README.md
-
+!examples
+!examples/**/*
 # standard github .gitignore template for Python:
 
 # Byte-compiled / optimized / DLL files

@@ -14,21 +14,30 @@ from ase.units import Bohr
 import os.path
 import argparse
 
-parser = argparse.ArgumentParser(description='Reconstructs quantum system from GPAW .traj file given as command line argument and stores it in .gpw format.')
-parser.add_argument('-c', '--charge',metavar='INTEGER_CHARGE',type=int,nargs='?', const=1, default=0)
-parser.add_argument('infile')
-parser.add_argument('outfile', nargs='?',default='')
+parser = argparse.ArgumentParser(description='Reconstructs quantum system from'
+    ' GPAW .traj file given as command line argument and stores it in'
+    ' .gpw format.')
+parser.add_argument('-c', '--charge',metavar='CHARGE', type=float, 
+    nargs='?', const=1.0, default=0.0, help="The system's total charge,"
+    " 0.0 if not specified, 1.0 if specified without value.")
+parser.add_argument('-b', '--box', metavar=('X','Y','Z'), type=float,
+    nargs=3, default=[25.0,25.0,25.0], help="The bounding box' measures in"
+    " Angstrom, default [25.0, 25.0, 25.0]")
+parser.add_argument('infile_traj')
+parser.add_argument('outfile_gpw')
 args = parser.parse_args()
 
-traj_file = args.infile
-gpw_file = args.outfile
-charge = args.charge
-print("Reading structure of charge {} from input file '{}'".format(charge, traj_file))
+traj_file = args.infile_traj
+gpw_file  = args.outfile_gpw
+charge    = args.charge
+box       = args.box
+print("Reading structure of charge {} (e) in box {} (Angstrom) from input"
+    " file '{}'".format(charge,box, traj_file))
 struc = read(traj_file)
 
 calc  = GPAW(xc='PBE', h=0.2, charge=charge,
              spinpol=True, convergence={'energy': 0.001})
-struc.set_cell([25,25,25])
+struc.set_cell(box)
 struc.set_pbc([0,0,0])
 struc.center()
 struc.set_calculator(calc)
