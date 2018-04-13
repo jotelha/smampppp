@@ -28,6 +28,8 @@ GPAW offers one function `get_electrostatic_potential()` within gpaw/paw.py
 evaluating the variable `vHt_g` of a calculator's hamiltonian by calling
 `calculator.hamiltonian.get_electrostatic_potential(...)`
 
+INSERT SHORT PARAGRAPH ON WHICH INTERNAL GPAW VARIABLE REPRESENTS WHAT KIND OF POTENTIAL
+
 # ESP fitting
 
 ## by GPAW and Horton
