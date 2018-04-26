@@ -2,6 +2,12 @@
 # takes dictionary of united atoms and implicit hydrogen number,
 # adding a certain number of explicit hydrogens around these.
 # Needs and returns corresponding ASE and ParmEd representations of the system
+# Ugly and annoying: 
+# ASE identifies atoms only by number, no functionality to store atom name and residue 
+#  New atoms are added at the end of the whole atom list
+# Parmed inserts new atoms not at the end of the list, nut within their respective residues.
+# Initially, ordering in ASE and Parmed are equal, but when structure is modified
+# we have to track every change in order to be able to map Parmed structure to ase structure
 
 # TODO: think about the case when one has to add more than two H-atoms
 
@@ -19,6 +25,8 @@ import nglview as nv
 import sys
 #gromacs.GROMACS_TOPDIR = "/home/jotelha/gromacs/2016.4/share/gromacs/top"
 
+# returns new_ase_struct and new_mpd_struct with hydrogens added
+# additionally, two lists, "names" and "residues" are returned in order to make ASE atoms identifiable
 def insertHbyList(ase_struct,pmd_top,implicitHbondingPartners,bond_length=1.0):
     # make copies of passed structures as not to alter originals:
     new_pmd_top = pmd_top.copy(pmd.Structure)
@@ -26,6 +34,8 @@ def insertHbyList(ase_struct,pmd_top,implicitHbondingPartners,bond_length=1.0):
 
     # names stores the String IDs of all atoms as to facilitate later ASE ID -> Atom name mapping
     names = [ a.name for a in pmd_top.atoms ]
+    residues = [ a.residue.name for a in pmd_top.atoms ]
+
     # make copied atoms accessible by unchangable indices (standard list)
     originalAtoms = [a for a in new_pmd_top.atoms]
 
@@ -132,5 +142,7 @@ def insertHbyList(ase_struct,pmd_top,implicitHbondingPartners,bond_length=1.0):
             new_pmd_top.bonds.append(new_Bond)
             new_pmd_top.add_atom_to_residue(new_H,bondingPartner.residue)
             originalAtoms.append(new_H) # add atom to the bottom of "index-stiff" list
+            
             names.append(nameH) # append name of H-atom
-    return new_ase_struct, new_pmd_top, names
+            residues.append(bondingPartner.residue.name) # H is in same residue as bonding partner
+    return new_ase_struct, new_pmd_top, names, residues

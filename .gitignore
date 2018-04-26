@@ -4,6 +4,7 @@
 *
 # except .py files
 !*.py
+!*.ipynb
 !sample_commands.sh
 !README.md
 !examples
