@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python   
 """ Maps point charges obtained by GPAW and HORTON on the original'
         ' GROMACS topology initially modified by insertHbyList.py """
 ## jlh 2018/04/02
