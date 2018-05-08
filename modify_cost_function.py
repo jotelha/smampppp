@@ -17,6 +17,7 @@
 
 import numpy as np
 import pandas as pd
+from insertHbyList import insertHbyList 
 
 ### Function definitions ###
 
@@ -71,8 +72,8 @@ def constrainedMinimize(A_matrix, b_vector, C_scalar, D_matrix = None,
         print("D {}: \n {}".format(D_matrix.shape,D_matrix))
         print("q {}: \n {}".format(q_vector.shape,q_vector))
     if npv < 13:
-        print '\nWARNING:\n Your numpy version {} is old,\n I am falling from '\
-            'np.block() back to np.bmat()\n\n'.format(np.version.version)
+        print('\nWARNING:\n Your numpy version {} is old,\n I am falling from '
+            'np.block() back to np.bmat()\n\n'.format(np.version.version) )
         A = np.bmat([[ 2*np.atleast_2d(A_matrix), np.atleast_2d(D_matrix).T ],
                      [ np.atleast_2d(D_matrix), np.atleast_2d(np.zeros((M,M)))]])
 
@@ -275,11 +276,10 @@ def constructChargegroupConstraints(chargeGroups, N, q=0, debug=False):
     return D_matrix, q_vector
 
 
-def read_Name_Index_ChargeGroup(file_name):
+def read_Name_Index_ChargeGroup(file_name, name):
     """
     Function to read in csv file of names and charge groups with the help of
-    pandas. It translates the 'pdb' names into ase structure atom indices and
-    constructs three vectors of atom names, indices and associated charge
+    pandas. Expects list of atom names and constructs vector of associated charge
     group. The vectors are all ordered in the same manner. It also returns
     cg_max, to reconstruct the charge group if atom names occure more than ones.
 
@@ -287,6 +287,8 @@ def read_Name_Index_ChargeGroup(file_name):
     ----------
     file_name: str
         name of the file which is read
+    name: list 
+        atom names, as ordered in ASE
 
     Return
     ------
@@ -303,16 +305,12 @@ def read_Name_Index_ChargeGroup(file_name):
     cg_max: int
         the maximum number of the old charge groups which are used for more than
         one atom index and thus carry an ambiguous meaning.
-
-    TODO
-    ----
-        --> read 'index_name' from the structure files (.traj, .pdb, ...) and
-            not from a '.txt' file! Use some skript from Johannes/ask him...
     """
 
     name_cg = pd.read_csv(file_name, sep=',', header=None).values[2:]
     # read names only up to 103 the cutted names are the added H2Os.
-    name = np.loadtxt('test_files/name_index.txt', dtype='str')[:103]
+
+    name = np.asarray(name)
 
     index = np.arange(len(name))
     cg_max = max(np.array(name_cg[:,1],dtype=int)) #maximum charge group number
@@ -325,7 +323,7 @@ def read_Name_Index_ChargeGroup(file_name):
         # cg_group + n*(cg_max*1) to avoid doubly named groups
         cg.append(int(name_cg[cg_value,1][0][0]) + (cg_max+1)*occurence_of_name)
 
-    return name, index, cg, cg_max
+    return cg, cg_max
 
 
 def read_ChargeGroup_TotalCharge(file_name):
@@ -351,7 +349,7 @@ def read_ChargeGroup_TotalCharge(file_name):
     return cg_q
 
 
-def read_SameChargedAtoms(file_name):
+def read_SameChargedAtoms(file_name, name):
     """
     Function to read in csv file of atoms which should have the same charge.
 
@@ -359,6 +357,8 @@ def read_SameChargedAtoms(file_name):
     ----------
     file_name: str
         name of the file which is read
+    name: list 
+        atom names, as ordered in ASE
 
     Return
     ------
@@ -369,7 +369,9 @@ def read_SameChargedAtoms(file_name):
 
     sca = pd.read_csv(file_name, sep=',', header=[2]).values #same charged atoms
 
-    name = np.loadtxt('test_files/name_index.txt', dtype='str')[:103]
+    #name = np.loadtxt('test_files/name_index.txt', dtype='str')[:103]
+    name = np.asarray(name)
+
 
     sca_by_index = [] #same charged atoms ordered by indices of atoms
     for group in sca:
@@ -459,79 +461,83 @@ def read_horton_cost_function(file_name, debug=False):
 
 ### ACTUAL PROGRAM ###
 #--------------------#
+def main():
 
-### Read Hortons Cost Function
-A_horton, B_horton, C_horton, N_horton = read_horton_cost_function(
-    file_name = 'test_files/smamp_esp_cost_ua.h5')
+    ### Read Hortons Cost Function
+    A_horton, B_horton, C_horton, N_horton = read_horton_cost_function(
+        file_name = 'test_files/smamp_esp_cost_ua.h5')
 
-### Charge Groups:
-# read in all charge groups and construct the corresponding constraints
-name, index, cg, cg_max = read_Name_Index_ChargeGroup(
-    file_name = 'test_files/Atom_name_charge_group.csv')
-cg_q = read_ChargeGroup_TotalCharge(
-    file_name = 'test_files/charge_group_total_charge.csv')
+    ### Charge Groups:
+    # read in all charge groups and construct the corresponding constraints
+    name, index, cg, cg_max = read_Name_Index_ChargeGroup(
+        file_name = 'test_files/Atom_name_charge_group.csv')
+    cg_q = read_ChargeGroup_TotalCharge(
+        file_name = 'test_files/charge_group_total_charge.csv')
 
-#loop over set of charge groups (each charge group occures only ones)
-c_groups = []
-charges  = []
-for cg_value in set(cg):
-    #step with index only necessary if index is not ordered
-    indices = index[np.where(cg == cg_value)[0]]
-    c_groups.append(indices)
-    c = cg_q[1, np.where(cg_q[0] == cg_value%(cg_max+1))][0][0]
-    charges.append(c)
+    #loop over set of charge groups (each charge group occures only ones)
+    c_groups = []
+    charges  = []
+    for cg_value in set(cg):
+        #step with index only necessary if index is not ordered
+        indices = index[np.where(cg == cg_value)[0]]
+        c_groups.append(indices)
+        c = cg_q[1, np.where(cg_q[0] == cg_value%(cg_max+1))][0][0]
+        charges.append(c)
 
-#print charges, c_groups
+    #print charges, c_groups
 
-D_matrix_cg, q_vector_cg = constructChargegroupConstraints(
-    chargeGroups = c_groups, N = N_horton, q = charges, debug=False)
+    D_matrix_cg, q_vector_cg = constructChargegroupConstraints(
+        chargeGroups = c_groups, N = N_horton, q = charges, debug=False)
 
-#print D_matrix, D_matrix.shape
-#print q_vector, q_vector.shape
-
-
-### Same Charged Atoms
-sca_by_index = read_SameChargedAtoms(
-    file_name='test_files/Atoms_have_the_same_charges.csv')
-
-print sca_by_index
-
-D_matrix_sym, q_vector_sym = constructPairwiseSymmetryConstraints(
-    charges = sca_by_index, N = N_horton, symmetry = 1.0, debug = False)
-
-#print D_matrix_sym, D_matrix_sym.shape
-#print q_vector_sym, q_vector_sym.shape
+    #print D_matrix, D_matrix.shape
+    #print q_vector, q_vector.shape
 
 
-### Concatenate The Constraints
-D_ms = np.append(D_matrix_cg, D_matrix_sym, axis=0) #D_matrices
-q_vs = np.append(q_vector_cg, q_vector_sym)         #q_vectors
-D_matrix_all, q_vector_all = concatenated_constraints(D_matrices = D_ms,
-                                                      q_vectors = q_vs)
+    ### Same Charged Atoms
+    sca_by_index = read_SameChargedAtoms(
+        file_name='test_files/Atoms_have_the_same_charges.csv')
 
-print D_matrix_all, D_matrix_all.shape
-print q_vector_all, q_vector_all.shape
+    print(sca_by_index)
 
+    D_matrix_sym, q_vector_sym = constructPairwiseSymmetryConstraints(
+        charges = sca_by_index, N = N_horton, symmetry = 1.0, debug = False)
 
-### Constrained Minimization
-X, A, B = constrainedMinimize(A_matrix = A_horton,
-                        b_vector = B_horton,
-                        C_scalar = C_horton,
-                        D_matrix = D_matrix_all,
-                        q_vector = q_vector_all,
-                        debug    = False)
-
-print 'Results:'
-#prevent scientific notation and make the prints mor readable
-np.set_printoptions(precision=3)
-np.set_printoptions(suppress=True)
-print 'charges {}:\n {}\ncharge sum = {}\n'.format( X[:N_horton].T.shape,
-                                                    X[:N_horton].T,
-                                                    X[:N_horton].T.sum() )
-print 'Lagrange multipliers {}:\n {}'.format( X[N_horton:].T.shape,
-                                              X[N_horton:].T )
+    #print D_matrix_sym, D_matrix_sym.shape
+    #print q_vector_sym, q_vector_sym.shape
 
 
-### test the results
-print 'optimized result: ',\
-    (np.dot(X.T, np.dot(A, X)) - 2*np.dot(B.T, X) - C_horton)[0,0]
+    ### Concatenate The Constraints
+    D_ms = np.append(D_matrix_cg, D_matrix_sym, axis=0) #D_matrices
+    q_vs = np.append(q_vector_cg, q_vector_sym)         #q_vectors
+    D_matrix_all, q_vector_all = concatenated_constraints(D_matrices = D_ms,
+                                                          q_vectors = q_vs)
+
+    print(D_matrix_all, D_matrix_all.shape)
+    print(q_vector_all, q_vector_all.shape)
+
+
+    ### Constrained Minimization
+    X, A, B = constrainedMinimize(A_matrix = A_horton,
+                            b_vector = B_horton,
+                            C_scalar = C_horton,
+                            D_matrix = D_matrix_all,
+                            q_vector = q_vector_all,
+                            debug    = False)
+
+    print('Results:')
+    #prevent scientific notation and make the prints mor readable
+    np.set_printoptions(precision=3)
+    np.set_printoptions(suppress=True)
+    print('charges {}:\n {}\ncharge sum = {}\n'.format( X[:N_horton].T.shape,
+                                                        X[:N_horton].T,
+                                                        X[:N_horton].T.sum() ))
+    print('Lagrange multipliers {}:\n {}'.format( X[N_horton:].T.shape,
+                                                  X[N_horton:].T ) )
+
+
+    ### test the results
+    print( 'optimized result: ',
+        (np.dot(X.T, np.dot(A, X)) - 2*np.dot(B.T, X) - C_horton)[0,0] )
+        
+if __name__ == '__main__':
+    main()
