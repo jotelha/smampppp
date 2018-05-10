@@ -29,13 +29,16 @@ from horton.scripts.common import parse_h5, write_script_output, \
     check_output
 from horton.scripts.espfit import load_cost
 
+i
+
 # All, except underflows, is *not* fine.
 np.seterr(divide='raise', over='raise', invalid='raise')
 
 
 def parse_args():
     parser = argparse.ArgumentParser(prog='horton-esp-fit-constrained.py',
-        description='Estimate charges from an ESP cost function.')
+        description='Estimate charges from an ESP cost function'
+                                     'under arbitrary constraints.')
     parser.add_argument('-V', '--version', action='version',
         version="%%(prog)s (HORTON version %s)" % __version__)
 
@@ -74,6 +77,10 @@ def main():
 
     # Find the optimal charges
     results = {}
+    
+    # MODIFICATION HERE
+    
+    
     results['x'] = cost.solve(args.qtot, args.ridge)
     results['charges'] = results['x'][:cost.natom]
 
@@ -100,15 +107,6 @@ def main():
         log('Worst RMSD ESP:                %10.5e' % results['rmsd_worst'])
         log.hline()
 
-    # Perform a symmetry analysis if requested
-    if args.symmetry is not None:
-        mol_pot = IOData.from_file(args.symmetry[0])
-        mol_sym = IOData.from_file(args.symmetry[1])
-        if not hasattr(mol_sym, 'symmetry'):
-            raise ValueError('No symmetry information found in %s.' % args.symmetry[1])
-        aim_results = {'charges': results['charges']}
-        sym_results = symmetry_analysis(mol_pot.coordinates, mol_pot.cell, mol_sym.symmetry, aim_results)
-        results['symmetry'] = sym_results
 
     # Store the results in an HDF5 file
     write_script_output(fn_h5, grp_name, results, args)

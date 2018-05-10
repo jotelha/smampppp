@@ -23,11 +23,13 @@ import parmed as pmd
 from parmed import gromacs
 import nglview as nv
 import sys
+
+import logging
 #gromacs.GROMACS_TOPDIR = "/home/jotelha/gromacs/2016.4/share/gromacs/top"
 
 # returns new_ase_struct and new_mpd_struct with hydrogens added
 # additionally, two lists, "names" and "residues" are returned in order to make ASE atoms identifiable
-def insertHbyList(ase_struct,pmd_top,implicitHbondingPartners,bond_length=1.0):
+def insertHbyList(ase_struct,pmd_top,implicitHbondingPartners,bond_length=1.0,debug=False):
     # make copies of passed structures as not to alter originals:
     new_pmd_top = pmd_top.copy(pmd.Structure)
     new_ase_struct = ase_struct.copy()
@@ -53,18 +55,18 @@ def insertHbyList(ase_struct,pmd_top,implicitHbondingPartners,bond_length=1.0):
     r = new_ase_struct.positions
 
     for k,Hno in implicitHbondingPartnersIdxHnoDict.items(): # for all atoms to append hydrogen to
-        print('Adding {} H-atoms to {} (#{})...'.format(Hno,originalAtoms[k].name,k))
+        logging.info('Adding {} H-atoms to {} (#{})...'.format(Hno,originalAtoms[k].name,k))
         for h in range(0,Hno):
             r = new_ase_struct.positions
             bondingPartners = j[i==k]
-            print('bondingPartners', bondingPartners)
+            logging.info('bondingPartners {}'.format(bondingPartners))
             partnerStr=''
             for p in bondingPartners:
                 if partnerStr == '':
                     partnerStr = originalAtoms[p].name
                 else:
                     partnerStr += ', ' + originalAtoms[p].name
-            print('Atom {} already has bonding partners {}'.format(originalAtoms[k].name,partnerStr))
+            logging.info('Atom {} already has bonding partners {}'.format(originalAtoms[k].name,partnerStr))
             dr = (r[j[i==k]] - r[k]).mean(axis=0)
             # my understanding: dr is vector
             # from atom k's position towards the geometrical center of mass
@@ -99,13 +101,13 @@ def insertHbyList(ase_struct,pmd_top,implicitHbondingPartners,bond_length=1.0):
                     break
 
                 elif c_step > 15:
-                    print('programm needs more than 15 corrector steps for H atom {} at atom {}'.format(n_atoms, k))
+                    logging.info('programm needs more than 15 corrector steps for H atom {} at atom {}'.format(n_atoms, k))
                     sys.exit(15)
                     break
 
-                print('too close atoms', indices)
+                logging.info('too close atoms {}'.format(indices))
                 c_step += 1
-                print('correcter step {} for H {} at atom {}'.format(c_step, n_atoms-1, k))
+                logging.info('correcter step {} for H {} at atom {}'.format(c_step, n_atoms-1, k))
                 # if indices not empty -> the atom(-1)=r_H is to close together
                 # with atom a_close=indices[0], it is a H-atom belonging to atom 'k'=r_k .
                 #correctorstep: corr_step = (r_H-a_close)/|(r_H-a_close)|
@@ -131,7 +133,7 @@ def insertHbyList(ase_struct,pmd_top,implicitHbondingPartners,bond_length=1.0):
             bondingPartner = originalAtoms[k] # here we need the original numbering,
             # as ParmEd alters indices when adding atoms to the structure
             nameH = '{}{}'.format(h+1,bondingPartner.name) # atom needs a unique name
-            print('Adding H-atom {} at position [ {}, {}, {} ]'.format(nameH,r0[0], r0[1], r0[2]))
+            logging.info('Adding H-atom {} at position [ {}, {}, {} ]'.format(nameH,r0[0], r0[1], r0[2]))
             new_H = pmd.Atom(name=nameH, type='H', atomic_number=1)
             new_H.xx = r0[0] # ParmEd documentation not very helpful, did not find any more compact assignment
             new_H.xy = r0[1]

@@ -14,7 +14,6 @@ from insertHbyList import insertHbyList
 import argparse
 
 def main():
-
     parser = argparse.ArgumentParser(\
         description='Converts an all-atom cube file into united-atom'
             ' representation based on certain replacement rules')
@@ -42,9 +41,13 @@ def main():
     #implicitHbondingPartners={'CD4':1,'CD3':1,'CA2':2,'CA3':2,'CB2':2,'CB3':2}
     print('Using replacement rules "{}"...'.format(args.insertion_rules))
     implicitHbondingPartners = ast.literal_eval(args.insertion_rules)
+    aa2ua_cube(args.infile_pdb, args.infile_top, args.infile_cube, 
+               args.outfile_cube,implicitHbondingPartners=implicitHbondingPartners)
 
 
-def aa2ua_cube(infile_pdb, infile_top, infile_cube, outfile_cube)
+def aa2ua_cube(infile_pdb, infile_top, infile_cube,
+               outfile_cube,implicitHbondingPartners=
+               {'CD4':1,'CD3':1,'CA2':2,'CA3':2,'CB2':2,'CB3':2}):
     #infile_pdb = args.infile_pdb
     #infile_top = args.infile_top
     #infile_cube  = args.infile_cube
@@ -59,8 +62,8 @@ def aa2ua_cube(infile_pdb, infile_top, infile_cube, outfile_cube)
     pmd_top.box = pmd_struct.box # Needed because .prmtop contains box info
     pmd_top.positions = pmd_struct.positions
 
-    new_ase_struct, new_pmd_struct, names = insertHbyList(ase_struct,pmd_top,
-            implicitHbondingPartners,1.0)
+    new_ase_struct, new_pmd_struct, names, residues = insertHbyList(
+        ase_struct,pmd_top,implicitHbondingPartners,1.0)
 
 
     surplus_atoms = len(new_ase_struct) - len(ase_struct)
@@ -71,3 +74,6 @@ def aa2ua_cube(infile_pdb, infile_top, infile_cube, outfile_cube)
     ase.io.write(outfile_cube, cube_atoms[0:len(ase_struct)], data=cube_data)
     # ATTENTION: this script just truncates atoms based on total count difference
     # in UA and AA representations
+
+if __name__ == '__main__':
+    main()
