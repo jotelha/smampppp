@@ -687,6 +687,10 @@ def logResults(X,A,B,C,N):
     logging.info( 'value of cost function: {}'.format(
         (np.dot(X.T, np.dot(A, X)) - 2*np.dot(B.T, X) - C) ) )
     
+    ### constraints fulfilled?
+    logging.info( "|D({}) x({}) - q({})| = {:e}".format(A[N:,:N].shape, X[:N].shape, B[N:].shape,
+        np.linalg.norm( np.dot(A[N:,:N],X[:N]) - B[N:] ) ) )
+    
 # check charge group constraints:
 def checkChargeGroups( df, cg2ase, cg2cgtype, cg2q,
     q_cols = ['q','q_unconstrained','q_qtot_constrained',
@@ -1075,7 +1079,20 @@ def fitESPconstrained(infile_pdb, infile_top, infile_cost_h5,
                         D_matrix = D_matrix_sym_qtot,
                         q_vector = q_vector_sym_qtot,
                         debug    = debug)
+            
         
+        #logging.info("")    
+        #logging.info("###################################")    
+        #logging.info("FULLY CONSTRAINED SYSTEM, REDUNDANT")            
+        #logging.info("###################################")
+        #logging.info("")  
+        #X_red, A_red, B_red = constrainedMinimize(A_matrix = A_horton,
+        #                    b_vector = B_horton,
+        #                    C_scalar = C_horton,
+        #                    D_matrix = D_matrix_all_red,
+        #                    q_vector = q_vector_all_red,
+        #                    debug    = debug)
+
         logging.info("")
         logging.info("")
         logging.info("")
@@ -1102,6 +1119,11 @@ def fitESPconstrained(infile_pdb, infile_top, infile_cost_h5,
         logging.info("")
         logging.info("### QTOT & SYM CONSTRAINED ###")
         logResults(X_sym_qtot,A_sym_qtot,B_sym_qtot,C_horton,N_horton)
+        
+        #logging.info("")
+        #logging.info("")
+        #logging.info("### FULLY CONSTRAINED, REDUNDANT ###")
+        #logResults(X_red,A_red,B_red,C_horton,N_horton)
 
 
         logging.info("")
