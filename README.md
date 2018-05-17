@@ -158,6 +158,18 @@ module load gpaw/1.3.0
 # if steps are carried out sequentially within one session as shown here
 ```
 
+### Looping over parameters
+
+First, use
+
+./loop-esp-cost.sh --esp-infile-cube benzene-esp.cube --cost-outfile-hdf5 benzene-cost.h5
+
+to loop over the parameter ln(rho_ref) as defined within the script, then use
+
+./loop-fitESPforBenzene.sh --cost-infile-prefix benzene-cost.h5 --charge-outfile-prefix benzene-esp.log
+
+to store charges.
+        
 ## RESP with Antechamber
 
 on the example of water. RESP fitting based on

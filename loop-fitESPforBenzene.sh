@@ -21,21 +21,17 @@ while true; do
   esac
 done
 
+source "$HOME/.bash_profile"
+
 module purge
 module load horton/2.1.0b3
 
-if [ -n "$WEIGHTS_OUTFILE_CUBE" ] ; then
-  EXTRA_OPTIONS="$EXTRA_OPTIONS --wsave '$WEIGHTS_OUTFILE_CUBE'"
-fi
-
-LNRHOREF=-18
-until [  $LNRHOREF -gt -2 ]; do
-    cmd="horton-esp-cost.py '${ESP_INFILE_CUBE}' '${COST_OUTFILE_HDF5}.${LNRHOREF}' --pbc 000 --overwrite --wdens ${DENS_INFILE_CUBE}:${LNRHOREF}:0.8 ${EXTRA_OPTIONS}"
+FILES=${COST_INFILE_PREFIX}.*
+echo "Looping over all ${FILES}..."
+for f in $FILES; do
+    suffix=${f#${COST_INFILE_PREFIX}.}
+    logfile="${CHARGE_OUTFILE_PREFIX}.${suffix}"
+    cmd="./fitESPforBenzene.py '$f' 2>&1 | tee ${logfile}"
     echo "Exectuting '$cmd'..."
-    let LNRHOREF+=1
     eval "$cmd"
 done
-#cmd="horton-esp-cost.py '$ESP_INFILE_CUBE' '$COST_OUTFILE_HDF5' --pbc 000 --overwrite --wdens :${LNRHOREF}:0.8"
-# echo "Exectuting '$cmd'..."
-
-# horton-esp-cost.py "$ESP_INFILE_CUBE" "$COST_OUTFILE_HDF5" --pbc 000 --overwrite $EXTRA_OPTIONS
