@@ -23,14 +23,12 @@ done
 
 source "$HOME/.bash_profile"
 
-module purge
-module load horton/2.1.0b3
-
-FILES=${COST_INFILE_PREFIX}.*
+FILES=${COST_INFILE_PREFIX}.*.h5
 echo "Looping over all ${FILES}..."
 for f in $FILES; do
     suffix=${f#${COST_INFILE_PREFIX}.}
-    logfile="${CHARGE_OUTFILE_PREFIX}.${suffix}"
+    parameter=${suffix%.h5}
+    logfile="${CHARGE_OUTFILE_PREFIX}.${parameter}.log"
     cmd="./fitESPforBenzene.py '$f' 2>&1 | tee ${logfile}"
     echo "Exectuting '$cmd'..."
     eval "$cmd"

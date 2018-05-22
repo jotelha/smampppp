@@ -10,6 +10,11 @@
 !README.md
 !examples
 !examples/**/*
+!benzene
+!benzene/log.sh
+!benzene/dft
+!benzene/dft/benzene_dft_by_gpaw.py
+
 # standard github .gitignore template for Python:
 
 # Byte-compiled / optimized / DLL files

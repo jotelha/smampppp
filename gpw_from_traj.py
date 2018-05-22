@@ -33,7 +33,12 @@ charge    = args.charge
 box       = args.box
 print("Reading structure of charge {} (e) in box {} (Angstrom) from input"
     " file '{}'".format(charge,box, traj_file))
-struc = read(traj_file)
+struc = read(traj_file) 
+# to read last frame, use "filename@-1" 
+# or read(traj_file, index=-1)
+# However, that's implicitly done by default, as stated on
+# https://wiki.fysik.dtu.dk/ase/ase/io/io.html:
+# "The last configuration will be returned by default"
 
 calc  = GPAW(xc='PBE', h=0.2, charge=charge,
              spinpol=True, convergence={'energy': 0.001})
