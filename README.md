@@ -160,16 +160,56 @@ module load gpaw/1.3.0
 
 ### Looping over parameters
 
-First, use
+For Benzene, first, use
 
-./loop-esp-cost.sh --esp-infile-cube benzene-esp.cube --cost-outfile-hdf5 benzene-cost.h5
+```
+./loop-esp-cost.sh --esp-infile-cube benzene/dft/benzene_vHtg.cube \
+  --cost-outfile-hdf5 benzene/nowdens_neg/benzene.cost.lnrhoref \
+  --weights-outfile-cube benzene/nowdens_neg/benzene.weights.lnrhoref \
+  --sign 2>&1 | tee benzene/nowdens_neg/benzene.loop-esp-cost.log
+```
 
 to loop over the parameter ln(rho_ref) as defined within the script, then use
 
-./loop-fitESPforBenzene.sh --cost-infile-prefix benzene-cost.h5 --charge-outfile-prefix benzene-esp.log
+```
+./loop-fitESPforBenzene.sh -i benzene/nowdens_neg/benzene.cost.lnrhoref \
+  -o benzene/nowdens_neg/benzene.charges.lnrhoref \
+  2>&1 | tee benzene/nowdens_neg/loop-fitESPforBenzene.log 
 
-to store charges.
-        
+to fit charges for all cost function filess.
+
+In general, use
+
+```
+./loop-esp-cost.sh --esp-infile-cube sandbox/system100.vHtg_ua.cube \
+  --dens-infile-cube sandbox/system100.rho_ua.cube \
+  --cost-outfile-hdf5 sandbox/wdens/system100.cost.lnrhoref \
+  --weights-outfile-cube sandbox/wdens/system100.weights.lnrhoref \
+  --sign > sandbox/wdens/system100.loop-esp-cost.log 2>&1  &
+```
+
+for looping over the reference density logarithm, constructing weights based upon the 
+true all-electron density stored in `sandbox/system100.rho_ua.cube`. Otherwise,
+leave out this parameter to construct HORTON's "pro-density" by superposing
+single-atom electron densities taken from internal precomputed tables:
+
+```
+./loop-esp-cost.sh --esp-infile-cube sandbox/system100.vHtg_ua.cube \
+  --cost-outfile-hdf5 sandbox/nowdens/system100.cost.lnrhoref \
+  --weights-outfile-cube sandbox/nowdens/system100.weights.lnrhoref \
+  --sign > sandbox/nowdens/system100.loop-esp-cost.log 2>&1  &
+```
+
+Afterwards, use a command like
+
+```
+./loop-fitESPconstrained.sh -i sandbox/nowdens/system100.cost.lnrhoref \
+  -o sandbox/nowdens/system100.fit -q 6 \
+  > sandbox/nowdens/system100.loop-fitESPconstrained.log 2>&1 &
+```
+
+to fit point charges for all cost function files under toal charge -q constraint.
+      
 ## RESP with Antechamber
 
 on the example of water. RESP fitting based on
