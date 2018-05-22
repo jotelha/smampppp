@@ -7,7 +7,7 @@
 #  --dens-infile-cube benzene/benzene.rho.cube \
 #  --cost-outfile-hdf5 benzene/wdens/benzene.cost.lnrhoref \
 #  --weights-outfile-cube benzene/wdens/benzene.weights.lnrhoref \
-#  2>&1 | tee benzene/wdens/benzene.loop-esp-cost.log
+#  --sign 2>&1 | tee benzene/wdens/benzene.loop-esp-cost.log
 
 LONG_ARGS="sign,esp-infile-cube:,cost-outfile-hdf5:,dens-infile-cube:"
 LONG_ARGS="${LONG_ARGS},weights-outfile-cube:,lnrhoref-min:,lnrhoref-max:"
@@ -57,5 +57,6 @@ until [  $LNRHOREF -gt $LNRHOREF_MAX ]; do
     cmd="${cmd} ${CUR_EXTRA_OPTIONS}"
     echo "Exectuting '$cmd'..."
     let LNRHOREF+=1
-    eval "$cmd"
+    eval "$cmd" &
 done
+wait
