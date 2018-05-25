@@ -754,7 +754,7 @@ def fitESPconstrained(infile_pdb, infile_top, infile_cost_h5,
     infile_atoms_of_same_charge_csv,
     qtot = 0.0, strip_string=':SOL,CL', 
     implicitHbondingPartners = {'CD4':1,'CD3':1,'CA2':2,'CA3':2,'CB2':2,'CB3':2},
-    debug=False, outfile_top = None):
+    debug=False, outfile_top = None, outfile_csv = None):
     
     """
     Automizes the whole fitting process from importing Horton's
@@ -1142,11 +1142,26 @@ def fitESPconstrained(infile_pdb, infile_top, infile_cost_h5,
 
  
     #atom_charge_dict = dict(zip(names[0:ua_count],charges))
+          
+    # one line to assign unique charge group numbers starting at 1 to ASE indices
+    ase2cg = dict([(idx, cgnr+1) for cgnr,cg in enumerate(cg2ase) for idx in cg])
+    logging.info("ase2cg: {}".format(ase2cg))    
+
+    for a in pmd_top.atoms:
+        a.charge = X[ pmd2ase[(a.name,a.residue.name)] ]
+        a.cgnr = ase2cg[ pmd2ase[(a.name,a.residue.name)] ]
+        
+    for a in pmd_top.atoms:
+        logging.info("(name, residue): ({:>4s},{:>4s}), q = {:> .3f}, cgnr = {:>3d}".format(
+            a.name, a.residue.name, a.charge, a.cgnr))    
+
+        
     if outfile_top:
-        for a in pmd_top.atoms:
-            a.charge = X[ pmd2ase[(a.name,a.residue.name)] ]
-            #pmd_top.write(outfile_top)
-            pmd_top.save(outfile_top, overwrite=True)
+        pmd_top.save(outfile_top, overwrite=True)
+  
+    if outfile_csv:       
+        ase2pmd_df.to_csv(outfile_csv, sep=',')
+       
             
     logging.info("####")    
     logging.info("DONE")            
@@ -1189,12 +1204,12 @@ def main():
         'str, str / [ atom name 1 ], [ atom name 2] will have the same charge. '
         'Apart from that, all atoms of the same name (but possibly spread over '
         'different residues) will have the same charge enforced.')  
-    
-    parser.add_argument('outfile_csv', metavar='outfile.csv',
-        help='Fitted charges will be written to a simple text file.')
+        
     parser.add_argument('outfile_top', nargs='?', metavar='outfile.top', 
         default=None, help="GROMACS .top output file"
         "with updated charges according to given .hdf5")
+    parser.add_argument('outfile_csv', metavar='outfile.csv',
+        help='Fitted charges will be written to a simple text file.')
     
     parser.add_argument('--qtot', '-q', default=0.0, type=float,
         help='The total charge of the system. [default=%(default)s]')
@@ -1229,9 +1244,10 @@ def main():
               infile_atoms_of_same_charge_csv = args.infile_atoms_of_same_charge_csv,
               qtot = args.qtot, strip_string=':SOL,CL', 
               implicitHbondingPartners = implicitHbondingPartners, 
-              debug = args.verbose, outfile_top=args.outfile_top)
+              debug = args.verbose, outfile_top=args.outfile_top,
+              outfile_csv=args.outfile_csv)
     
-    np.savetxt(args.outfile_csv, q, delimiter=',')    
+    # np.savetxt(args.outfile_csv, q, delimiter=',')    
     
 if __name__ == '__main__':
     main()

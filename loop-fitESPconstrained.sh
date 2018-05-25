@@ -13,13 +13,13 @@ eval set -- "$args"
 INFILE_PREFIX="parameterized.cost.file.prefix"
 OUTFILE_PREFIX="parameterized.outfile.prefix"
 
-PDB_INFILE="sandbox/system100.pdb"
-TOP_INFILE="sandbox/system100.lean.top"
-ATOMS_IN_CHARGE_GROUPS="sandbox/atoms_in_charge_group.csv"
-CHARGE_GROUPS_TOTAL_CHARGE="sandbox/charge_group_total_charge.csv"
-ATOMS_OF_SAME_CHARGE="sandbox/atoms_of_same_charge.csv"
-FITTED_POINT_CHARGES_TXT="sandbox/fitted_point_charges.txt"
-FITTED_POINT_CHARGES_TOP"sandbox/fitted_point_charges.top"
+PDB_INFILE="smamp/system100.pdb"
+TOP_INFILE="smamp/system100.lean.top"
+ATOMS_IN_CHARGE_GROUPS="smamp/atoms_in_charge_group.csv"
+CHARGE_GROUPS_TOTAL_CHARGE="smamp/charge_group_total_charge.csv"
+ATOMS_OF_SAME_CHARGE="smamp/atoms_of_same_charge.csv"
+# FITTED_POINT_CHARGES_TXT="sandbox/fitted_point_charges.txt"
+# FITTED_POINT_CHARGES_TOP="sandbox/fitted_point_charges.top"
 QTOT=0
 
 EXTRA_OPTIONS=""
@@ -47,7 +47,7 @@ for f in $FILES; do
     suffix=${f#${INFILE_PREFIX}.}
     parameter=${suffix%.h5}
     logfile="${OUTFILE_PREFIX}.${parameter}.log"
-    fitted_point_charges_txt="${OUTFILE_PREFIX}.${parameter}.txt"
+    fitted_point_charges_csv="${OUTFILE_PREFIX}.${parameter}.csv"
     fitted_point_charges_top="${OUTFILE_PREFIX}.${parameter}.top"
 
     # A COMMAND OF THE FOLLOWING PATTERN IS CONSTRUCTED
@@ -58,8 +58,8 @@ for f in $FILES; do
     # --qtot 6.0 --verbose 2>&1 | tee sandbox/esp-fit-constrained.log
     cmd="./fitESPconstrained.py '$f' '${PDB_INFILE}' '${TOP_INFILE}' \
         '${ATOMS_IN_CHARGE_GROUPS}' '${CHARGE_GROUPS_TOTAL_CHARGE}' \
-        '${ATOMS_OF_SAME_CHARGE}' '${fitted_point_charges_txt}' \
-        '${fitted_point_charges_top}' --qtot ${QTOT} --verbose \
+        '${ATOMS_OF_SAME_CHARGE}' '${fitted_point_charges_top}' \
+        '${fitted_point_charges_csv}' --qtot ${QTOT} --verbose \
         2>&1 | tee ${logfile}" 
     echo "Exectuting '$cmd'..."
     eval "$cmd" &
