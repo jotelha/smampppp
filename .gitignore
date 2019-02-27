@@ -1,21 +1,22 @@
 # custom .gitignore entries:
+
 # ignore all files in root
 *
 # except .py files
 !*.py
-.#*
 !*.ipynb
+!*.sh
+!sample_commands.sh
 !README.md
 !examples
 !examples/**/*
+!benzene
+!benzene/log.sh
+!benzene/dft
+!benzene/dft/benzene_dft_by_gpaw.py
 
-# sh
-!sample_commands.sh
-!horton-esp-cost.sh
-!loop-esp-cost.sh
-!loop-fitESPconstrained.sh
+.#*
 
-	
 # standard github .gitignore template for Python:
 
 # Byte-compiled / optimized / DLL files
