@@ -1,15 +1,21 @@
 # custom .gitignore entries:
-
 # ignore all files in root
 *
 # except .py files
 !*.py
 .#*
 !*.ipynb
-!sample_commands.sh
 !README.md
 !examples
 !examples/**/*
+
+# sh
+!sample_commands.sh
+!horton-esp-cost.sh
+!loop-esp-cost.sh
+!loop-fitESPconstrained.sh
+
+	
 # standard github .gitignore template for Python:
 
 # Byte-compiled / optimized / DLL files
