@@ -32,13 +32,13 @@ def main():
             default='esp_fitted_system.top', help="Output truncated by atoms only"
             "present in all-atoms description")
     parser.add_argument('-i','--insertion-rules',
-            default="{'CD4':1,'CD3':1,'CA2':2,'CA3':2,'CB2':2,'CB3':2}",
+            default="{'CD4':1,'CD3':1,'CA2':2,'CA3':2,'CA4':2,'CB2':2,'CB3':2}",
             help="A string representation of a python dictionary, describing how "
             "many implicit hydrogens have been inserted at which atom. Example: "
-            "{'CD4':1,'CD3':1,'CA2':2,'CA3':2,'CB2':2,'CB3':2}")
+            "{'CD4':1,'CD3':1,'CA2':2,'CA3':2,'CA4':2,'CB2':2,'CB3':2}")
     args = parser.parse_args()
 
-    #implicitHbondingPartners={'CD4':1,'CD3':1,'CA2':2,'CA3':2,'CB2':2,'CB3':2}
+    #implicitHbondingPartners={'CD4':1,'CD3':1,'CA2':2,'CA3':2,'CA4':2,'CB2':2,'CB3':2}
     print('Using replacement rules "{}"...'.format(args.insertion_rules))
     implicitHbondingPartners = ast.literal_eval(args.insertion_rules)
     aa2ua_cube(args.infile_pdb, args.infile_top, args.infile_cube, 
@@ -47,7 +47,7 @@ def main():
 
 def aa2ua_cube(infile_pdb, infile_top, infile_cube,
                outfile_cube,implicitHbondingPartners=
-               {'CD4':1,'CD3':1,'CA2':2,'CA3':2,'CB2':2,'CB3':2}):
+               {'CD4':1,'CD3':1,'CA2':2,'CA3':2,'CA4':2,'CB2':2,'CB3':2}):
     #infile_pdb = args.infile_pdb
     #infile_top = args.infile_top
     #infile_cube  = args.infile_cube

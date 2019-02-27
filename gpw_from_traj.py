@@ -3,6 +3,8 @@
 
 from ase.io import read
 from ase.io import write
+from gpaw import Mixer
+from gpaw import GPAW, FermiDirac
 
 from gpaw import GPAW
 from gpaw import restart
@@ -21,8 +23,8 @@ parser.add_argument('-c', '--charge',metavar='CHARGE', type=float,
     nargs='?', const=1.0, default=0.0, help="The system's total charge,"
     " 0.0 if not specified, 1.0 if specified without value.")
 parser.add_argument('-b', '--box', metavar=('X','Y','Z'), type=float,
-    nargs=3, default=[25.0,25.0,25.0], help="The bounding box' measures in"
-    " Angstrom, default [25.0, 25.0, 25.0]")
+    nargs=3, default=[30.0,30.0,30.0], help="The bounding box' measures in"
+    " Angstrom, default [30.0, 30.0, 30.0]")
 parser.add_argument('infile_traj')
 parser.add_argument('outfile_gpw')
 args = parser.parse_args()
@@ -35,8 +37,9 @@ print("Reading structure of charge {} (e) in box {} (Angstrom) from input"
     " file '{}'".format(charge,box, traj_file))
 struc = read(traj_file)
 
-calc  = GPAW(xc='PBE', h=0.2, charge=charge,
-             spinpol=True, convergence={'energy': 0.001})
+calc  = GPAW(xc='PBE', h=0.2, charge=+1,
+             spinpol=True, convergence={'energy': 0.001},
+             mixer=Mixer(beta=0.25, nmaxold=10, weight=1.0), occupations=FermiDirac(width=0.1))
 struc.set_cell(box)
 struc.set_pbc([0,0,0])
 struc.center()
